@@ -1,0 +1,16 @@
+(in-package #:markdown-protocol/tests)
+
+(deftest document-open-fence
+  (multiple-value-bind (blocks fence) (md:parse-markdown-document (nl "p" "````lisp" "x"))
+    (ok (equal '((:paragraph ("p")) (:code-block "lisp" ("x"))) blocks))
+    (ok (equal '(#\` . 4) fence) "unclosed top-level fence: its char and length"))
+  (ok (null (nth-value 1 (md:parse-markdown-document (nl "~~~" "x" "~~~"))))
+      "closed fence")
+  (ok (null (nth-value 1 (md:parse-markdown-document (nl "> ```" "> x"))))
+      "a fence open inside a container is not reported")
+  (ok (equal (md:parse-markdown (nl "# a" "b"))
+             (md:parse-markdown-document (nl "# a" "b")))
+      "same blocks as PARSE-MARKDOWN")
+  (ok (= 1 (length (multiple-value-list (md:parse-markdown (nl "```" "x")))))
+      "PARSE-MARKDOWN returns one value")
+  (ok (signals (md:parse-markdown-document nil) 'type-error)))
