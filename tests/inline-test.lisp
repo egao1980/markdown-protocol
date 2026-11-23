@@ -56,8 +56,23 @@
   (ok (equal '("[a " (:link "v" ("b")) "](u)") (pi* "[a [b](v)](u)")) "no links inside links")
   (ok (equal '((:link "https://x.y/z" ("https://x.y/z"))) (pi* "<https://x.y/z>")) "autolink")
   (ok (equal '("<a b>") (pi* "<a b>")) "not an autolink")
-  (ok (equal '("*" (:link "u" ("a*"))) (pi* "*[a*](u)")) "a link is a boundary for emphasis")
-  (ok (equal '("!" (:link "i.png" ("alt"))) (pi* "![alt](i.png)")) "no images: ! stays text"))
+  (ok (equal '("*" (:link "u" ("a*"))) (pi* "*[a*](u)")) "a link is a boundary for emphasis"))
+
+(deftest inline-images
+  (ok (equal '((:image "i.png" ("alt"))) (pi* "![alt](i.png)")))
+  (ok (equal '((:image "i.png" ((:emph ("a")) " b"))) (pi* "![*a* b](i.png \"t\")"))
+      "alt inlines; title dropped")
+  (ok (equal '((:image "a b.png" ())) (pi* "![](<a b.png>)")) "empty alt, angle destination")
+  (ok (equal '("x " (:image "i.png" ("y")) " z") (pi* "x ![y](i.png) z")))
+  (ok (equal '((:link "u" ((:image "i.png" ("b"))))) (pi* "[![b](i.png)](u)"))
+      "an image inside a link (badge)")
+  (ok (equal '((:image "i.png" ("a " (:link "v" ("b"))))) (pi* "![a [b](v)](i.png)"))
+      "a link inside alt text")
+  (ok (equal '("!" (:link "u" ("a"))) (pi* "\\![a](u)")) "escaped !: a link")
+  (ok (equal '("![a]") (pi* "![a]")) "no destination: text")
+  (ok (equal '("![a](") (pi* "![a](")) "unclosed tail: text")
+  (ok (equal '("![" (:link "u" ("b"))) (pi* "![[b](u)")) "an unmatched image bracket is text")
+  (ok (equal '("wow!" (:soft-break) "x") (pi* (format nil "wow!~%x"))) "! alone is text"))
 
 (deftest inline-breaks
   (ok (equal '("a" (:soft-break) "b") (pi* (format nil "a~%b"))))

@@ -4,17 +4,21 @@
 ;;; Inline parser (the INLINES rules in markdown.lisp's header).
 ;;;
 ;;; One left-to-right scan fills an adjustable vector with strings, finished
-;;; inline nodes (lists), DELIM runs (* _ ~~) and BRACKETs ([). Code spans,
-;;; escapes and autolinks are resolved during the scan; links when their
-;;; "](" tail parses; emphasis by %PROCESS-EMPHASIS (CommonMark §6.3) over
-;;; the delimiters above a bottom index (the link's bracket, or the start).
+;;; inline nodes (lists), DELIM runs (* _ ~~) and BRACKETs ([ and ![). Code
+;;; spans, escapes and autolinks are resolved during the scan; links and
+;;; images when their "](" tail parses; emphasis by %PROCESS-EMPHASIS
+;;; (CommonMark §6.3) over the delimiters above a bottom index (the
+;;; bracket, or the start). A link deactivates the link brackets before it
+;;; (no links in links); an image deactivates nothing, so an image may sit
+;;; inside a link and a link inside an image's alt text.
 
 (defstruct (delim (:constructor make-delim (char count can-open can-close
                                             &aux (orig count))))
   char count orig can-open can-close)
 
-(defstruct (bracket (:constructor make-bracket ()))
-  (active t))
+(defstruct (bracket (:constructor make-bracket (&optional image)))
+  (active t)
+  (image nil))
 
 (declaim (inline %ws-p))
 (defun %ws-p (ch)
@@ -51,7 +55,7 @@ dropped."
 
 (defun %element-inline (x)
   (cond ((delim-p x) (make-string (delim-count x) :initial-element (delim-char x)))
-        ((bracket-p x) "[")
+        ((bracket-p x) (if (bracket-image x) "![" "["))
         (t x)))
 
 (defun %finalize (v from to)
@@ -270,31 +274,38 @@ link tail \"(dest title)\", END after the \")\"; NIL when there is none."
                               (emit (make-delim ch len open close))
                               (add-string (subseq s i (+ i len))))))
                       (incf i len)))
-                   ;; links
+                   ;; links and images
+                   ((and (char= ch #\!) (< (1+ i) n) (char= (char s (1+ i)) #\[))
+                    (emit (make-bracket t))
+                    (incf i 2))
                    ((char= ch #\[)
                     (emit (make-bracket))
                     (incf i))
                    ((char= ch #\])
                     (flush)
-                    (let ((bi (position-if #'bracket-p v :from-end t)))
+                    (let* ((bi (position-if #'bracket-p v :from-end t))
+                           (b (and bi (aref v bi))))
                       (cond
                         ((null bi) (add-char ch) (incf i))
-                        ((not (bracket-active (aref v bi)))
-                         (setf (aref v bi) "[")
+                        ((not (bracket-active b))
+                         (setf (aref v bi) (%element-inline b))
                          (add-char ch) (incf i))
                         (t
                          (multiple-value-bind (url end) (%parse-link-tail s (1+ i) n)
                            (if url
-                               (progn
+                               (let ((image (bracket-image b)))
                                  (%process-emphasis v bi)
-                                 (let ((link (list :link url (%finalize v (1+ bi) (length v)))))
+                                 (let ((node (list (if image :image :link) url
+                                                   (%finalize v (1+ bi) (length v)))))
                                    (setf (fill-pointer v) bi)
-                                   (loop for x across v
-                                         when (bracket-p x) do (setf (bracket-active x) nil))
-                                   (vector-push-extend link v))
+                                   (unless image
+                                     (loop for x across v
+                                           when (and (bracket-p x) (not (bracket-image x)))
+                                             do (setf (bracket-active x) nil)))
+                                   (vector-push-extend node v))
                                  (setf i end))
                                (progn
-                                 (setf (aref v bi) "[")
+                                 (setf (aref v bi) (%element-inline b))
                                  (add-char ch)
                                  (incf i))))))))
                    ;; autolinks

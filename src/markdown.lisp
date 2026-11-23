@@ -59,8 +59,12 @@
 ;;;  - Inline links [text](dest "title"): dest bare (balanced parens,
 ;;;    escapes) or <…>; title dropped; no links inside links; emphasis is
 ;;;    resolved inside the brackets first. Autolinks <scheme:…> (scheme
-;;;    2–32 chars) → (:link url (url)). No reference links, no images
-;;;    ("!" stays text), no raw HTML (text), no entities (text).
+;;;    2–32 chars) → (:link url (url)). No reference links, no raw HTML
+;;;    (text), no entities (text).
+;;;  - Images ![alt](dest "title") → (:image url alt-inlines), same tail
+;;;    rules as links. An image does not deactivate other brackets: it may
+;;;    sit inside a link ([![b](i.png)](u)) and its alt may hold a link.
+;;;    \! or a "!" not followed by "[" is text.
 ;;;  - Newline → (:soft-break); two or more spaces before it → (:hard-break).
 ;;;    Spaces around a newline are dropped.
 
@@ -88,7 +92,8 @@ Blocks:  (:paragraph inlines) (:heading level inlines) (:thematic-break)
                                              ; header: cells; rows: lists of cells;
                                              ; a cell is a list of inlines
 Inlines: string  (:emph inlines) (:strong inlines) (:strike inlines)
-         (:code string) (:link url inlines) (:soft-break) (:hard-break)
+         (:code string) (:link url inlines) (:image url alt-inlines)
+         (:soft-break) (:hard-break)
 Adjacent strings are merged and empty strings dropped, so results compare
 with EQUAL."
   (check-type string string)

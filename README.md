@@ -39,14 +39,15 @@ Blocks:  (:paragraph inlines)  (:heading level inlines)  (:thematic-break)
          (:table alignments header rows)             ; :left :right :center NIL;
                                                      ; a cell is a list of inlines
 Inlines: string  (:emph inlines)  (:strong inlines)  (:strike inlines)
-         (:code string)  (:link url inlines)  (:soft-break)  (:hard-break)
+         (:code string)  (:link url inlines)  (:image url alt-inlines)
+         (:soft-break)  (:hard-break)
 ```
 
 Adjacent strings are merged and empty strings are dropped.
 
 ## Subset
 
-CommonMark 0.31 blocks (ATX headings, thematic breaks, fenced code, block quotes, bullet and ordered lists with tight/loose) and inlines (backslash escapes, code spans, `*`/`_` emphasis with the delimiter-run algorithm, inline links, autolinks, hard and soft breaks), plus GFM tables and `~~strike~~`. Not supported, so left as text: lazy continuation lines, setext headings, indented code blocks, HTML, link reference definitions, images, entities, footnotes, task-list markers and math. Without lazy lines, setext headings or reference definitions, a later line never changes an earlier block, so a stream can commit completed blocks. The exact rules are in the header of [`src/markdown.lisp`](src/markdown.lisp).
+CommonMark 0.31 blocks (ATX headings, thematic breaks, fenced code, block quotes, bullet and ordered lists with tight/loose) and inlines (backslash escapes, code spans, `*`/`_` emphasis with the delimiter-run algorithm, inline links, images, autolinks, hard and soft breaks), plus GFM tables and `~~strike~~`. Not supported, so left as text: lazy continuation lines, setext headings, indented code blocks, HTML, link reference definitions, entities, footnotes, task-list markers and math. Without lazy lines, setext headings or reference definitions, a later line never changes an earlier block, so a stream can commit completed blocks. The exact rules are in the header of [`src/markdown.lisp`](src/markdown.lisp).
 
 ## Tests
 

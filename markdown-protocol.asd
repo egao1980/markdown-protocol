@@ -1,5 +1,5 @@
 (defsystem "markdown-protocol"
-  :version "0.1.0"
+  :version "0.2.0"
   :description "CommonMark-subset markdown parser (plus GFM tables and ~~strike~~) producing a plain-list block / inline AST"
   :author "egao1980"
   :license "MIT"
